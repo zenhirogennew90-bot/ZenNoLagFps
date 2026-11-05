@@ -166,7 +166,7 @@ local function updateESP()
             local distStuds = (Camera.CFrame.Position - hrp.Position).Magnitude
             local distMeters = math.floor(distStuds / 3.5 + 0.5)
 
-            -- Username (Kapital Semua + Configurable Offset Tinggi)
+            -- Username (Kapital Semua + Offset Tinggi)
             if esp.Username then
                 local show = Config.ESPUsername and headOnScreen
                 esp.Username.Visible = show
@@ -292,7 +292,6 @@ local C = {
     textDim   = Color3.fromRGB(140, 140, 152),
     switchOff = Color3.fromRGB(58, 58, 68),
     knob      = Color3.fromRGB(238, 238, 242),
-    danger    = Color3.fromRGB(220, 60, 60),
 }
 
 local ScreenGui = Instance.new("ScreenGui")
@@ -339,10 +338,10 @@ openLbl.TextXAlignment = Enum.TextXAlignment.Left
 openLbl.Parent = OpenBtn
 
 -- ============================================
--- MAIN PANEL
+-- MAIN PANEL (DITAMBAH TINGGI UNTUK 2 TOMBOL BAWAH)
 -- ============================================
 local Main = Instance.new("Frame")
-Main.Size = UDim2.new(0, 230, 0, 420)   -- Diperbesar untuk menampung tombol tambahan
+Main.Size = UDim2.new(0, 230, 0, 460)   
 Main.Position = UDim2.new(0, 20, 0, 72)
 Main.BackgroundColor3 = C.bg
 Main.BackgroundTransparency = 0.03
@@ -378,6 +377,43 @@ Separator.BackgroundColor3 = C.stroke
 Separator.BackgroundTransparency = 0.4
 Separator.BorderSizePixel = 0
 Separator.Parent = Main
+
+-- ============================================
+-- FITUR DRAGGABLE / GESER MENU
+-- ============================================
+local dragging, dragInput, dragStart, startPos
+
+Header.InputBegan:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseButton1 or input.UserInputType == Enum.UserInputType.Touch then
+        dragging = true
+        dragStart = input.Position
+        startPos = Main.Position
+        
+        input.Changed:Connect(function()
+            if input.UserInputState == Enum.UserInputState.End then
+                dragging = false
+            end
+        end)
+    end
+end)
+
+Header.InputChanged:Connect(function(input)
+    if input.UserInputType == Enum.UserInputType.MouseMovement or input.UserInputType == Enum.UserInputType.Touch then
+        dragInput = input
+    end
+end)
+
+UIS.InputChanged:Connect(function(input)
+    if input == dragInput and dragging then
+        local delta = input.Position - dragStart
+        Main.Position = UDim2.new(
+            startPos.X.Scale, 
+            startPos.X.Offset + delta.X, 
+            startPos.Y.Scale, 
+            startPos.Y.Offset + delta.Y
+        )
+    end
+end)
 
 -- ============================================
 -- SCROLLING AREA
@@ -479,7 +515,7 @@ createSwitch(4, "Line",          "ESPLine")
 createSwitch(5, "Titik Kepala",  "ESPTitikKepala")
 
 -- ============================================
--- TOMBOL/PENGATURAN TINGGI NAMA (NAME HEIGHT)
+-- TOMBOL PENGATURAN TINGGI NAMA
 -- ============================================
 local function createHeightButton(order)
     local row = Instance.new("TextButton")
@@ -544,6 +580,14 @@ Sep2.Parent = Main
 
 local ColorLabel = Instance.new("TextLabel")
 ColorLabel.Size = UDim2.new(1, -20, 0, 14)
+ColorLabel.Position = UDim2.new(0, 10, 0, 244)
+Sep2.BackgroundColor3 = C.stroke
+Sep2.BackgroundTransparency = 0.4
+Sep2.BorderSizePixel = 0
+Sep2.Parent = Main
+
+local ColorLabel = Instance.new("TextLabel")
+ColorLabel.Size = UDim2.new(1, -20, 0, 14)
 ColorLabel.Position = UDim2.new(0, 14, 0, 252)
 ColorLabel.BackgroundTransparency = 1
 ColorLabel.Text = "Warna"
@@ -575,8 +619,9 @@ for i, entry in ipairs(PALETTE) do
     sw.BorderSizePixel = 0
     sw.LayoutOrder = i
     sw.Parent = SwatchContainer
+    Instance.new("UICorner", sw).CornerRadius = UDim.new(1, 0)
 
-local st = Instance.new("UIStroke", sw)
+    local st = Instance.new("UIStroke", sw)
     st.Color = Color3.fromRGB(245, 245, 250)
     st.Thickness = 2
     st.Transparency = 1
@@ -695,7 +740,6 @@ UIS.InputChanged:Connect(function(input)
     end
 end)
 
--- Initial slider pos
 local function initSliderPos()
     local fillPct = (Config.ESPVisualScale - 0.5) / 2.0
     SliderFill.Size = UDim2.new(fillPct, 0, 1, 0)
@@ -705,7 +749,7 @@ end
 task.spawn(initSliderPos)
 
 -- ============================================
--- TOMBOL UNLOAD / HAPUS MENU + FLOATING
+-- TOMBOL HAPUS FLOATING & UNLOAD
 -- ============================================
 local Sep4 = Instance.new("Frame")
 Sep4.Size = UDim2.new(1, -20, 0, 1)
@@ -715,19 +759,47 @@ Sep4.BackgroundTransparency = 0.4
 Sep4.BorderSizePixel = 0
 Sep4.Parent = Main
 
+-- Tombol Hapus Floating Button Saja
+local RemoveFloatBtn = Instance.new("TextButton")
+RemoveFloatBtn.Size = UDim2.new(1, -20, 0, 26)
+RemoveFloatBtn.Position = UDim2.new(0, 10, 0, 373)
+RemoveFloatBtn.BackgroundColor3 = C.panel
+RemoveFloatBtn.BackgroundTransparency = 0.5
+RemoveFloatBtn.BorderSizePixel = 0
+RemoveFloatBtn.Text = "Hapus Floating"
+RemoveFloatBtn.TextColor3 = C.textDim
+RemoveFloatBtn.Font = Enum.Font.GothamMedium
+RemoveFloatBtn.TextSize = 11
+RemoveFloatBtn.AutoButtonColor = false
+RemoveFloatBtn.Parent = Main
+Instance.new("UICorner", RemoveFloatBtn).CornerRadius = UDim.new(0, 6)
+
+RemoveFloatBtn.MouseButton1Click:Connect(function()
+    if OpenBtn then
+        pcall(function() OpenBtn:Destroy() end)
+    end
+end)
+RemoveFloatBtn.MouseEnter:Connect(function()
+    TweenService:Create(RemoveFloatBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.2, TextColor3 = C.text}):Play()
+end)
+RemoveFloatBtn.MouseLeave:Connect(function()
+    TweenService:Create(RemoveFloatBtn, TweenInfo.new(0.15), {BackgroundTransparency = 0.5, TextColor3 = C.textDim}):Play()
+end)
+
+-- Tombol Unload / Hapus Seluruhnya (ESP + Menu)
 local UnloadBtn = Instance.new("TextButton")
-UnloadBtn.Size = UDim2.new(1, -20, 0, 32)
-UnloadBtn.Position = UDim2.new(0, 10, 0, 376)
+UnloadBtn.Size = UDim2.new(1, -20, 0, 28)
+UnloadBtn.Position = UDim2.new(0, 10, 0, 405)
 UnloadBtn.BackgroundColor3 = Color3.fromRGB(40, 28, 34)
 UnloadBtn.BackgroundTransparency = 0.2
 UnloadBtn.BorderSizePixel = 0
 UnloadBtn.Text = "Hapus ESP & Menu"
 UnloadBtn.TextColor3 = Color3.fromRGB(255, 100, 100)
 UnloadBtn.Font = Enum.Font.GothamMedium
-UnloadBtn.TextSize = 12
+UnloadBtn.TextSize = 11
 UnloadBtn.AutoButtonColor = false
 UnloadBtn.Parent = Main
-Instance.new("UICorner", UnloadBtn).CornerRadius = UDim.new(0, 8)
+Instance.new("UICorner", UnloadBtn).CornerRadius = UDim.new(0, 6)
 local unloadStroke = Instance.new("UIStroke", UnloadBtn)
 unloadStroke.Color = Color3.fromRGB(120, 45, 45)
 unloadStroke.Thickness = 1
